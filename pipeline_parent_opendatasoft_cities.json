@@ -1,0 +1,238 @@
+
+{
+    "name": "Get_API_data_airbnb",
+    "objectId": "90cd49e3-956c-4562-ae3a-5c59fef8e661",
+    "properties": {
+        "activities": [
+            {
+                "name": "get_unique_cities",
+                "type": "Copy",
+                "dependsOn": [
+                    {
+                        "activity": "Delete loaded airbnb",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "typeProperties": {
+                    "source": {
+                        "type": "RestSource",
+                        "httpRequestTimeout": "00:10:40",
+                        "requestInterval": "00.00:00:00.010",
+                        "requestMethod": "GET",
+                        "datasetSettings": {
+                            "annotations": [],
+                            "type": "RestResource",
+                            "typeProperties": {
+                                "relativeUrl": {
+                                    "value": "?dataset=airbnb-listings&facet=city",
+                                    "type": "Expression"
+                                }
+                            },
+                            "schema": [],
+                            "externalReferences": {
+                                "connection": "a5b9ffe0-2d24-4796-b02b-803c3106eba2"
+                            }
+                        }
+                    },
+                    "sink": {
+                        "type": "JsonSink",
+                        "storeSettings": {
+                            "type": "LakehouseWriteSettings"
+                        },
+                        "formatSettings": {
+                            "type": "JsonWriteSettings"
+                        },
+                        "datasetSettings": {
+                            "annotations": [],
+                            "linkedService": {
+                                "name": "sb_lakehouse",
+                                "properties": {
+                                    "annotations": [],
+                                    "type": "Lakehouse",
+                                    "typeProperties": {
+                                        "workspaceId": "2d2772c8-0868-471e-a900-374b70d8e1ce",
+                                        "artifactId": "d571d57b-b1a7-4148-b967-745bc4c44240",
+                                        "rootFolder": "Files"
+                                    }
+                                }
+                            },
+                            "type": "Json",
+                            "typeProperties": {
+                                "location": {
+                                    "type": "LakehouseLocation",
+                                    "fileName": "airbnb_city_facet.json",
+                                    "folderPath": "store/opendatasoft"
+                                }
+                            },
+                            "schema": {}
+                        }
+                    },
+                    "enableStaging": false,
+                    "translator": {
+                        "type": "TabularTranslator",
+                        "mappings": [
+                            {
+                                "source": {
+                                    "path": "$['facet_groups'][0]['facets']"
+                                },
+                                "sink": {
+                                    "path": "$['unique_cities']"
+                                }
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "name": "Lookup_json_cities",
+                "type": "Lookup",
+                "dependsOn": [
+                    {
+                        "activity": "get_unique_cities",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "typeProperties": {
+                    "source": {
+                        "type": "JsonSource",
+                        "storeSettings": {
+                            "type": "LakehouseReadSettings",
+                            "recursive": false,
+                            "enablePartitionDiscovery": false
+                        },
+                        "formatSettings": {
+                            "type": "JsonReadSettings"
+                        }
+                    },
+                    "firstRowOnly": false,
+                    "datasetSettings": {
+                        "annotations": [],
+                        "linkedService": {
+                            "name": "sb_lakehouse",
+                            "properties": {
+                                "annotations": [],
+                                "type": "Lakehouse",
+                                "typeProperties": {
+                                    "workspaceId": "2d2772c8-0868-471e-a900-374b70d8e1ce",
+                                    "artifactId": "d571d57b-b1a7-4148-b967-745bc4c44240",
+                                    "rootFolder": "Files"
+                                }
+                            }
+                        },
+                        "type": "Json",
+                        "typeProperties": {
+                            "location": {
+                                "type": "LakehouseLocation",
+                                "fileName": "airbnb_city_facet.json",
+                                "folderPath": "store/opendatasoft"
+                            }
+                        },
+                        "schema": {}
+                    }
+                }
+            },
+            {
+                "name": "ForEach1",
+                "type": "ForEach",
+                "dependsOn": [
+                    {
+                        "activity": "Lookup_json_cities",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "typeProperties": {
+                    "items": {
+                        "value": "@activity('Lookup_json_cities').output.value[0].unique_cities",
+                        "type": "Expression"
+                    },
+                    "batchCount": 3,
+                    "activities": [
+                        {
+                            "name": "Invoke pipeline1",
+                            "type": "ExecutePipeline",
+                            "dependsOn": [],
+                            "typeProperties": {
+                                "pipeline": {
+                                    "referenceName": "85b8a0ed-a55a-4653-b3f8-5469dc35cda2",
+                                    "type": "PipelineReference"
+                                },
+                                "waitOnCompletion": true,
+                                "parameters": {
+                                    "city": {
+                                        "value": "@item().name",
+                                        "type": "Expression"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "name": "Delete loaded airbnb",
+                "type": "Delete",
+                "dependsOn": [],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "typeProperties": {
+                    "datasetSettings": {
+                        "annotations": [],
+                        "linkedService": {
+                            "name": "sb_lakehouse",
+                            "properties": {
+                                "annotations": [],
+                                "type": "Lakehouse",
+                                "typeProperties": {
+                                    "workspaceId": "2d2772c8-0868-471e-a900-374b70d8e1ce",
+                                    "artifactId": "d571d57b-b1a7-4148-b967-745bc4c44240",
+                                    "rootFolder": "Files"
+                                }
+                            }
+                        },
+                        "type": "Binary",
+                        "typeProperties": {
+                            "location": {
+                                "type": "LakehouseLocation",
+                                "folderPath": "loaded/opendatasoft/airbnb-listings"
+                            }
+                        }
+                    },
+                    "enableLogging": false,
+                    "storeSettings": {
+                        "type": "LakehouseReadSettings",
+                        "recursive": true,
+                        "enablePartitionDiscovery": false
+                    }
+                }
+            }
+        ],
+        "annotations": [],
+        "lastModifiedByObjectId": "309c05ea-b990-403a-bf3b-3bdeb690cd32",
+        "lastPublishTime": "2023-09-04T11:41:56Z"
+    }
+}
