@@ -4,7 +4,7 @@ This Github page gives in-depth insight in the Airbnb use-case which is discusse
 
 ## Data extraction
 
-Here the data is extracted via the Opendatasoft API. We used the following data factory pipeline to extract all the cities from opendatasoft; **Pipeline_parent_opendatasoft_cities.json** and **pipeline_child_get_city_listings** to copy the datasets from Opendatasoft to datalakehouse. Finally, the **process_nested_json** notebook is executed within the Data Factory pipeline to parse the json files using Pyspark and writing the structured tables to OneLake.
+Here the data is extracted via the Opendatasoft API. We used the following data factory pipeline to extract all the cities from opendatasoft; **Pipeline_parent_opendatasoft_cities.json** and **[pipeline_child_get_city_listings]**(https://github.com/sekaki22/Medium_blog_Fabric_airbnb/blob/main/pipeline_parent_opendatasoft_cities.json) to copy the datasets from Opendatasoft to datalakehouse. Finally, the **process_nested_json** notebook is executed within the Data Factory pipeline to parse the json files using Pyspark and writing the structured tables to OneLake.
 
 ## Data exploration
 
